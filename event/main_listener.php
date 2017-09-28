@@ -2,7 +2,7 @@
 /**
 *
 * @package Who Visit This Topic
-* @copyright (c) 2013 Bruninoit
+* @copyright (c) 2015 Bruninoit
 * @license http://opensource.org/licenses/gpl-2.0.php GNU General Public License v2
 *
 */
@@ -74,13 +74,16 @@ class main_listener implements EventSubscriberInterface
 	 	AND wvtt.user_id=" . $user_id . "
 	 	AND wvtt.topic_id=tt.topic_id
 	 	AND ft.forum_id=tt.forum_id
-	 	GROUP BY wvtt.topic_id
-	 	ORDER BY wvtt.date DESC LIMIT 0,20";
+	 	ORDER BY wvtt.date DESC LIMIT 0,40";
 		$sql_list_query = $this->db->sql_query($sql_list);
 			$nn=0;
+$arr = array();
 			while ($sql_list = $this->db->sql_fetchrow($sql_list_query))
     			{
-    			if ($this->auth->acl_get('f_read', $sql_list['forum_id']) == 1)
+$id = $sql_list['topic_id'];
+if(isset($arr[$id])) $true=false; else $true=true;
+$arr[$id] = true;
+    			if ($this->auth->acl_get('f_read', $sql_list['forum_id']) == 1 and $true)
     			{
     			$true=true;
                 $nn++;
@@ -95,12 +98,12 @@ class main_listener implements EventSubscriberInterface
     			$topic_title = $sql_list['topic_title'];
     			$url = "{$this->root_path}viewtopic.{$this->phpEx}?t={$topic_id}";
     			//$date = $this->user->format_date($sql_list['date']);
-			$date = "SELECT date
+			$dates = "SELECT date
     			FROM " . $this->wvtt_table . "
     			WHERE  topic_id = " . $topic_id . "
     			AND  user_id = " . $user_id . "
         		ORDER BY date DESC";
-    			$date_query = $this->db->sql_query($date);
+    			$date_query = $this->db->sql_query($dates);
     			$date_array = $this->db->sql_fetchrow($date_query);
         		$date = $date_array['date'];
         		$date = $this->user->format_date($date);
@@ -168,7 +171,7 @@ class main_listener implements EventSubscriberInterface
     //list
   if($this->auth->acl_get('u_wvtt'))
     { //permission start
-    $query = "SELECT w.user_id, w.topic_id, u.username, u.user_colour, u.user_id, COUNT(w.user_id) AS total
+    $query = "SELECT w.user_id, w.topic_id, u.username, u.user_colour, u.user_id, u.user_type, COUNT(w.user_id) AS total
 	 FROM " . $this->wvtt_table . " w, " . USERS_TABLE . " u
 	 WHERE w.topic_id = " . $topic_id . "
 	 AND w.user_id=u.user_id
@@ -177,6 +180,10 @@ class main_listener implements EventSubscriberInterface
   $list_query = $this->db->sql_query($query);
   while ($list = $this->db->sql_fetchrow($list_query))
     {
+ if($list['user_type'] == 2 and !$this->auth->acl_get('a_'))
+{
+continue;
+}
     	$username = $list['username'];
 	$user_colour = ($list['user_colour']) ? ' style="color:#' . $list['user_colour'] . '" class="username-coloured"' : '';
     	$user_id = $list['user_id'];
